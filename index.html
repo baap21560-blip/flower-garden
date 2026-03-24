@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bioluminescent Garden | Refined</title>
+    <style>
+        :root {
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent: #ff6bf0;
+            --dark-bg: #050508;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background-color: var(--dark-bg);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            user-select: none;
+        }
+
+        canvas { display: block; }
+
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 10;
+            transition: opacity 1.5s ease;
+        }
+
+        h1 {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: clamp(0.9rem, 2vw, 1.5rem);
+            font-weight: 200;
+            text-align: center;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+        }
+
+        h1 span {
+            font-weight: 600;
+            display: block;
+            color: var(--accent);
+            filter: blur(0.5px);
+            margin-top: 10px;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            pointer-events: auto;
+            z-index: 100;
+        }
+
+        .btn {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            color: rgba(255,255,255,0.5);
+            padding: 10px 25px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            letter-spacing: 2px;
+            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            outline: none;
+        }
+
+        .btn:hover {
+            border-color: var(--accent);
+            color: white;
+            box-shadow: 0 0 15px rgba(255, 107, 240, 0.2);
+        }
+
+        .btn.active {
+            background: var(--accent);
+            color: #000;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="garden"></canvas>
+
+    <div class="overlay" id="overlay">
+        <h1>Silence the Mind <br><span>Cultivate the Void</span></h1>
+    </div>
+
+    <div class="controls">
+        <button class="btn" onclick="clearCanvas()">RESET</button>
+        <button id="autoToggle" class="btn" onclick="toggleAuto()">AUTO-BLOOM</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('garden');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        const overlay = document.getElementById('overlay');
+        
+        let flowers = [];
+        let particles = [];
+        let isAuto = false;
+        let autoInterval;
+        let time = 0;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Flower {
+            constructor(x, y) {
+                this.x = x;
+                this.targetY = y;
+                this.stemHeight = 0;
+                this.maxStemHeight = canvas.height - y;
+                
+                // Color Palettes: Neon Bioluminescence
+                const palettes = [
+                    { h: 320, s: 90, l: 60 }, // Electric Pink
+                    { h: 270, s: 85, l: 65 }, // Deep Violet
+                    { h: 190, s: 90, l: 60 }, // Cyan Glow
+                    { h: 45, s: 100, l: 60 }  // Golden Ember
+                ];
+                this.palette = palettes[Math.floor(Math.random() * palettes.length)];
+                
+                // Physical Properties
+                this.z = Math.random() * 0.5 + 0.5; // Depth factor (0.5 to 1.0)
+                this.petalCount = Math.floor(Math.random() * 3) + 6;
+                this.swaySpeed = (Math.random() * 0.02 + 0.01) * (this.z * 0.5);
+                this.swayOffset = Math.random() * Math.PI * 2;
+                this.curveDir = (Math.random() - 0.5) * 150;
+                
+                this.bloomScale = 0;
+                this.isFullGrown = false;
+                this.pulse = 0;
+            }
+
+            draw() {
+                // Organic Sway Calculation
+                const sway = Math.sin(time * this.swaySpeed + this.swayOffset) * (20 * this.z);
+                const progress = this.stemHeight / this.maxStemHeight;
+                
+                // Dynamics based on growth
+                const currentX = this.x + (sway * progress);
+                const headY = canvas.height - this.stemHeight;
+                const cp1x = this.x + (this.curveDir * progress);
+                const cp1y = canvas.height - (this.stemHeight * 0.5);
+
+                // Draw Stem
+                ctx.beginPath();
+                ctx.moveTo(this.x, canvas.height);
+                ctx.quadraticCurveTo(cp1x, cp1y, currentX, headY);
+                ctx.strokeStyle = `hsla(150, 40%, 30%, ${0.3 * this.z})`;
+                ctx.lineWidth = 2 * this.z;
+                ctx.stroke();
+
+                // Growth Logic
+                if (this.stemHeight < this.maxStemHeight) {
+                    this.stemHeight += (this.maxStemHeight - this.stemHeight) * 0.05 + 0.2;
+                } else {
+                    this.drawBloom(currentX, headY, sway);
+                    if (this.bloomScale < 1) this.bloomScale += 0.03;
+                    else this.isFullGrown = true;
+                }
+            }
+
+            drawBloom(x, y, sway) {
+                this.pulse = Math.sin(time * 0.05) * 5;
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(sway * 0.01);
+                ctx.scale(this.bloomScale * this.z, this.bloomScale * this.z);
+
+                // Petal Layering
+                for (let i = 0; i < this.petalCount; i++) {
+                    ctx.save();
+                    ctx.rotate((Math.PI * 2 / this.petalCount) * i);
+                    
+                    // Outer Glow Petal
+                    ctx.fillStyle = `hsla(${this.palette.h}, ${this.palette.s}%, ${this.palette.l}%, 0.15)`;
+                    ctx.shadowBlur = 15 + this.pulse;
+                    ctx.shadowColor = `hsla(${this.palette.h}, ${this.palette.s}%, ${this.palette.l}%, 0.8)`;
+                    
+                    ctx.beginPath();
+                    ctx.ellipse(0, -15, 10, 22, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                // Core Luminescence
+                const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 8);
+                grad.addColorStop(0, '#fff');
+                grad.addColorStop(1, `hsla(${this.palette.h}, 100%, 70%, 0)`);
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(0, 0, 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+
+                // Occasional Pollen
+                if (Math.random() > 0.99) {
+                    particles.push(new Particle(x, y, this.palette.h));
+                }
+            }
+        }
+
+        class Particle {
+            constructor(x, y, hue) {
+                this.x = x;
+                this.y = y;
+                this.hue = hue;
+                this.vx = (Math.random() - 0.5) * 1;
+                this.vy = Math.random() * -1 - 0.5;
+                this.alpha = 1;
+                this.life = Math.random() * 0.01 + 0.005;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= this.life;
+            }
+            draw() {
+                ctx.fillStyle = `hsla(${this.hue}, 100%, 80%, ${this.alpha})`;
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = `hsla(${this.hue}, 100%, 80%, 0.5)`;
+                ctx.fillRect(this.x, this.y, 1.5, 1.5);
+            }
+        }
+
+        function animate() {
+            time++;
+            // Soft clearing for motion trails
+            ctx.fillStyle = 'rgba(5, 5, 8, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw flowers (Sorted by Z-index for depth)
+            flowers.sort((a, b) => a.z - b.z);
+            flowers.forEach(f => f.draw());
+            
+            // Update Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                if (particles[i].alpha <= 0) particles.splice(i, 1);
+                else particles[i].draw();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.controls')) return;
+            flowers.push(new Flower(e.clientX, e.clientY));
+            overlay.style.opacity = '0';
+        });
+
+        function clearCanvas() {
+            flowers = [];
+            particles = [];
+            overlay.style.opacity = '1';
+        }
+
+        function toggleAuto() {
+            const btn = document.getElementById('autoToggle');
+            isAuto = !isAuto;
+            if (isAuto) {
+                btn.classList.add('active');
+                autoInterval = setInterval(() => {
+                    flowers.push(new Flower(Math.random() * canvas.width, Math.random() * canvas.height * 0.7 + 100));
+                    overlay.style.opacity = '0';
+                }, 800);
+            } else {
+                btn.classList.remove('active');
+                clearInterval(autoInterval);
+            }
+        }
+
+        animate();
+    </script>
+</body>
+</html>
