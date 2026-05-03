@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -118,6 +117,7 @@
         }
 
         .track-btn:hover { background: rgba(255, 107, 240, 0.1); border-color: var(--accent); }
+        .track-btn.active-track { border-color: var(--accent); background: rgba(255, 107, 240, 0.05); }
 
         .btn {
             background: var(--glass);
@@ -164,15 +164,15 @@
     <div id="music-page">
         <h1 style="color: white; font-weight: 600;">SOUNDSCAPE<span>Select Harmony</span></h1>
         
-        <div class="music-list">
-            <button class="track-btn" style="animation-delay: 0.1s;" onclick="playMusic('music1.mp3', this)">
+        <div class="music-list" id="playlist-container">
+            <button class="track-btn" style="animation-delay: 0.1s;" onclick="playSelected(0)">
                 <span>01. Perfect </span> <small class="status">▶</small>
             </button>
-            <button class="track-btn" style="animation-delay: 0.2s;" onclick="playMusic('music2.mp3', this)">
-                <span>02. Dandelions</span> <small class="status">▶</small>
+            <button class="track-btn" style="animation-delay: 0.2s;" onclick="playSelected(1)">
+                <span>02. Dandelions </span> <small class="status">▶</small>
             </button>
-            <button class="track-btn" style="animation-delay: 0.3s;" onclick="playMusic('music3.mp3', this)">
-                <span>03. Somewhere only we know</span> <small class="status">▶</small>
+            <button class="track-btn" style="animation-delay: 0.3s;" onclick="playSelected(2)">
+                <span>03. Blue </span> <small class="status">▶</small>
             </button>
         </div>
 
@@ -181,7 +181,7 @@
 
     <div class="footer">DEV - MURPHX</div>
 
-    <audio id="bg-audio" loop></audio>
+    <audio id="bg-audio"></audio>
 
     <script>
         const canvas = document.getElementById('garden');
@@ -197,41 +197,61 @@
         let autoInterval;
         let time = 0;
 
-        // MUSIC SYSTEM
+       
+        const tracks = [
+            'music1.mp3',
+            'music2.mp3',
+            'music3.mp3'
+        ];
+        let currentTrackIndex = 0;
+        let isMusicStarted = false;
+
         function toggleMusicPage() {
             musicPage.style.display = (musicPage.style.display === 'flex') ? 'none' : 'flex';
         }
 
-        function playMusic(src, btn) {
-            const statusIcon = btn.querySelector('.status');
-            
-            // If clicking the same song
-            if (audio.src === src) {
-                if (audio.paused) {
-                    audio.play();
-                    statusIcon.innerText = "⏸";
-                    btn.style.borderColor = 'var(--accent)';
-                } else {
-                    audio.pause();
-                    statusIcon.innerText = "▶";
-                    btn.style.borderColor = 'var(--glass-border)';
-                }
+        function playSelected(index) {
+            if (currentTrackIndex === index && !audio.paused) {
+                audio.pause();
+                updateUI();
                 return;
             }
-
-            // If switching songs
-            document.querySelectorAll('.track-btn').forEach(b => {
-                b.style.borderColor = 'var(--glass-border)';
-                b.querySelector('.status').innerText = "▶";
-            });
-
-            audio.src = src;
-            audio.play().catch(e => console.log("Interaction required"));
-            statusIcon.innerText = "⏸";
-            btn.style.borderColor = 'var(--accent)';
+            currentTrackIndex = index;
+            startPlaylist();
         }
 
-        // GARDEN & FIREFLIES (Identical to your original)
+        function startPlaylist() {
+            audio.src = tracks[currentTrackIndex];
+            audio.play().catch(e => console.log("Waiting for user gesture"));
+            isMusicStarted = true;
+            updateUI();
+        }
+
+        function updateUI() {
+            const btns = document.querySelectorAll('.track-btn');
+            btns.forEach((btn, i) => {
+                const status = btn.querySelector('.status');
+                if (i === currentTrackIndex) {
+                    btn.classList.add('active-track');
+                    status.innerText = audio.paused ? "▶" : "⏸";
+                } else {
+                    btn.classList.remove('active-track');
+                    status.innerText = "▶";
+                }
+            });
+        }
+
+        // Auto-play next track
+        audio.onended = () => {
+            currentTrackIndex = (currentTrackIndex + 1) % tracks.length;
+            startPlaylist();
+        };
+
+        
+        audio.onplay = updateUI;
+        audio.onpause = updateUI;
+
+       
         function resize() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -359,6 +379,12 @@
 
         window.addEventListener('pointerdown', (e) => {
             if (e.target.closest('.controls') || e.target.closest('#music-page')) return;
+            
+            
+            if (!isMusicStarted) {
+                startPlaylist();
+            }
+
             flowers.push(new Flower(e.clientX, e.clientY));
             overlay.style.opacity = '0';
         });
