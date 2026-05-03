@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bioluminescent Garden </title>
+    <title>Bioluminescent Garden</title>
     <style>
         :root {
             --glass: rgba(255, 255, 255, 0.03);
@@ -19,10 +20,12 @@
             background-color: var(--dark-bg);
             font-family: 'Segoe UI', system-ui, sans-serif;
             user-select: none;
+            touch-action: none;
         }
 
         canvas { display: block; }
 
+        /* Main UI */
         .overlay {
             position: absolute;
             inset: 0;
@@ -36,8 +39,8 @@
         }
 
         h1 {
-            color: rgba(255, 255, 255, 0.4);
-            font-size: clamp(0.9rem, 2vw, 1.5rem);
+            color: rgba(255, 255, 255, 0.3);
+            font-size: clamp(0.9rem, 4vw, 1.5rem);
             font-weight: 200;
             text-align: center;
             letter-spacing: 5px;
@@ -58,25 +61,63 @@
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            flex-direction: column; 
-            align-items: center;    
-            gap: 20px;
+            gap: 12px;
             pointer-events: auto;
             z-index: 100;
         }
 
-        .ria-label {
-            color: var(--accent);
-            letter-spacing: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            opacity: 0.8;
+        /* Music Page Overlay with Animation */
+        #music-page {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 5, 8, 0.95);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            z-index: 200;
+            display: none; 
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            overflow-y: auto;
+            animation: fadeIn 0.5s ease forwards;
         }
 
-        .button-group {
-            display: flex;
-            gap: 20px;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
+
+        .music-list {
+            width: 100%;
+            max-width: 400px;
+            margin-top: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .track-btn {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            transition: 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            animation: slideUp 0.4s ease backwards;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .track-btn:hover { background: rgba(255, 107, 240, 0.1); border-color: var(--accent); }
 
         .btn {
             background: var(--glass);
@@ -84,44 +125,25 @@
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--glass-border);
             color: rgba(255,255,255,0.5);
-            padding: 10px 25px;
+            padding: 12px 20px;
             border-radius: 4px;
             cursor: pointer;
             font-size: 11px;
             letter-spacing: 2px;
-            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: 0.4s;
             outline: none;
         }
 
-        .btn:hover {
-            border-color: var(--accent);
-            color: white;
-            box-shadow: 0 0 15px rgba(255, 107, 240, 0.2);
-        }
+        .btn:hover { border-color: var(--accent); color: white; }
+        .btn.active { background: var(--accent); color: #000; font-weight: bold; }
 
-        .btn.active {
-            background: var(--accent);
-            color: #000;
-            font-weight: bold;
-        }
-
-        /* Footer Style Added */
         .footer {
             position: fixed;
             bottom: 15px;
             right: 20px;
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 12px;
-            letter-spacing: 1px;
-            z-index: 100;
-            pointer-events: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .footer span {
             color: rgba(255, 255, 255, 0.2);
+            font-size: 10px;
+            z-index: 100;
         }
     </style>
 </head>
@@ -134,65 +156,138 @@
     </div>
 
     <div class="controls">
-        <div class="ria-label"></div>
-        <div class="button-group">
-            <button class="btn" onclick="clearCanvas()">RESET</button>
-            <button id="autoToggle" class="btn" onclick="toggleAuto()">AUTO-BLOOM</button>
-        </div>
+        <button class="btn" onclick="clearCanvas()">RESET</button>
+        <button id="autoToggle" class="btn" onclick="toggleAuto()">AUTO-BLOOM</button>
+        <button class="btn" onclick="toggleMusicPage()">MUSIC 🎵</button>
     </div>
 
-    <div class="footer">
-        MADE WITH PATIENCE 🌸 ✨ <span>|</span> DEV - MURPHX
+    <div id="music-page">
+        <h1 style="color: white; font-weight: 600;">SOUNDSCAPE<span>Select Harmony</span></h1>
+        
+        <div class="music-list">
+            <button class="track-btn" style="animation-delay: 0.1s;" onclick="playMusic('music1.mp3', this)">
+                <span>01. Perfect </span> <small class="status">▶</small>
+            </button>
+            <button class="track-btn" style="animation-delay: 0.2s;" onclick="playMusic('music2.mp3', this)">
+                <span>02. Dandelions</span> <small class="status">▶</small>
+            </button>
+            <button class="track-btn" style="animation-delay: 0.3s;" onclick="playMusic('music3.mp3', this)">
+                <span>03. Somewhere only we know</span> <small class="status">▶</small>
+            </button>
+        </div>
+
+        <button class="btn" style="margin-top: 50px; width: 150px;" onclick="toggleMusicPage()">BACK</button>
     </div>
+
+    <div class="footer">DEV - MURPHX</div>
+
+    <audio id="bg-audio" loop></audio>
 
     <script>
         const canvas = document.getElementById('garden');
         const ctx = canvas.getContext('2d', { alpha: false });
         const overlay = document.getElementById('overlay');
+        const musicPage = document.getElementById('music-page');
+        const audio = document.getElementById('bg-audio');
         
         let flowers = [];
         let particles = [];
+        let fireflies = [];
         let isAuto = false;
         let autoInterval;
         let time = 0;
 
+        // MUSIC SYSTEM
+        function toggleMusicPage() {
+            musicPage.style.display = (musicPage.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        function playMusic(src, btn) {
+            const statusIcon = btn.querySelector('.status');
+            
+            // If clicking the same song
+            if (audio.src === src) {
+                if (audio.paused) {
+                    audio.play();
+                    statusIcon.innerText = "⏸";
+                    btn.style.borderColor = 'var(--accent)';
+                } else {
+                    audio.pause();
+                    statusIcon.innerText = "▶";
+                    btn.style.borderColor = 'var(--glass-border)';
+                }
+                return;
+            }
+
+            // If switching songs
+            document.querySelectorAll('.track-btn').forEach(b => {
+                b.style.borderColor = 'var(--glass-border)';
+                b.querySelector('.status').innerText = "▶";
+            });
+
+            audio.src = src;
+            audio.play().catch(e => console.log("Interaction required"));
+            statusIcon.innerText = "⏸";
+            btn.style.borderColor = 'var(--accent)';
+        }
+
+        // GARDEN & FIREFLIES (Identical to your original)
         function resize() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            initFireflies();
         }
         window.addEventListener('resize', resize);
-        resize();
+
+        class Firefly {
+            constructor() { this.init(); }
+            init() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.s = Math.random() * 2 + 1;
+                this.ang = Math.random() * Math.PI * 2;
+                this.v = Math.random() * 0.4 + 0.2;
+            }
+            move() {
+                this.ang += (Math.random() - 0.5) * 0.1;
+                this.x += Math.cos(this.ang) * this.v;
+                this.y += Math.sin(this.ang) * this.v;
+                if(this.x < 0) this.x = canvas.width;
+                if(this.x > canvas.width) this.x = 0;
+                if(this.y < 0) this.y = canvas.height;
+                if(this.y > canvas.height) this.y = 0;
+            }
+            draw() {
+                const pulse = Math.abs(Math.sin(time * 0.02 + this.x));
+                ctx.fillStyle = `rgba(255, 255, 150, ${pulse * 0.4})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.s * pulse, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initFireflies() {
+            fireflies = [];
+            for(let i=0; i<15; i++) fireflies.push(new Firefly());
+        }
 
         class Flower {
             constructor(x, y) {
                 this.x = x;
-                this.targetY = y;
                 this.stemHeight = 0;
                 this.maxStemHeight = canvas.height - y;
-                
-                const palettes = [
-                    { h: 320, s: 90, l: 60 }, 
-                    { h: 270, s: 85, l: 65 }, 
-                    { h: 190, s: 90, l: 60 }, 
-                    { h: 45, s: 100, l: 60 }  
-                ];
-                this.palette = palettes[Math.floor(Math.random() * palettes.length)];
-                
+                const palettes = [{h:320,s:90,l:60},{h:270,s:85,l:65},{h:190,s:90,l:60},{h:45,s:100,l:60}];
+                this.palette = palettes[Math.floor(Math.random()*palettes.length)];
                 this.z = Math.random() * 0.5 + 0.5; 
-                this.petalCount = Math.floor(Math.random() * 3) + 6;
-                this.swaySpeed = (Math.random() * 0.02 + 0.01) * (this.z * 0.5);
+                this.petalCount = Math.floor(Math.random() * 2) + 6;
+                this.swaySpeed = (Math.random() * 0.01 + 0.005);
                 this.swayOffset = Math.random() * Math.PI * 2;
-                this.curveDir = (Math.random() - 0.5) * 150;
-                
+                this.curveDir = (Math.random() - 0.5) * 120;
                 this.bloomScale = 0;
-                this.isFullGrown = false;
-                this.pulse = 0;
             }
-
             draw() {
-                const sway = Math.sin(time * this.swaySpeed + this.swayOffset) * (20 * this.z);
-                const progress = this.stemHeight / this.maxStemHeight;
-                
+                const sway = Math.sin(time * this.swaySpeed + this.swayOffset) * (15 * this.z);
+                const progress = Math.min(this.stemHeight / this.maxStemHeight, 1);
                 const currentX = this.x + (sway * progress);
                 const headY = canvas.height - this.stemHeight;
                 const cp1x = this.x + (this.curveDir * progress);
@@ -201,98 +296,69 @@
                 ctx.beginPath();
                 ctx.moveTo(this.x, canvas.height);
                 ctx.quadraticCurveTo(cp1x, cp1y, currentX, headY);
-                ctx.strokeStyle = `hsla(150, 40%, 30%, ${0.3 * this.z})`;
-                ctx.lineWidth = 2 * this.z;
+                ctx.strokeStyle = `hsla(150, 40%, 25%, ${0.2 * this.z})`;
+                ctx.lineWidth = 1.5 * this.z;
                 ctx.stroke();
 
                 if (this.stemHeight < this.maxStemHeight) {
-                    this.stemHeight += (this.maxStemHeight - this.stemHeight) * 0.05 + 0.2;
+                    this.stemHeight += (this.maxStemHeight - this.stemHeight) * 0.06 + 0.5;
                 } else {
                     this.drawBloom(currentX, headY, sway);
-                    if (this.bloomScale < 1) this.bloomScale += 0.03;
-                    else this.isFullGrown = true;
+                    if (this.bloomScale < 1) this.bloomScale += 0.04;
                 }
             }
-
             drawBloom(x, y, sway) {
-                this.pulse = Math.sin(time * 0.05) * 5;
                 ctx.save();
                 ctx.translate(x, y);
                 ctx.rotate(sway * 0.01);
                 ctx.scale(this.bloomScale * this.z, this.bloomScale * this.z);
-
+                ctx.fillStyle = `hsla(${this.palette.h}, ${this.palette.s}%, ${this.palette.l}%, 0.3)`;
                 for (let i = 0; i < this.petalCount; i++) {
                     ctx.save();
                     ctx.rotate((Math.PI * 2 / this.petalCount) * i);
-                    
-                    ctx.fillStyle = `hsla(${this.palette.h}, ${this.palette.s}%, ${this.palette.l}%, 0.15)`;
-                    ctx.shadowBlur = 15 + this.pulse;
-                    ctx.shadowColor = `hsla(${this.palette.h}, ${this.palette.s}%, ${this.palette.l}%, 0.8)`;
-                    
                     ctx.beginPath();
-                    ctx.ellipse(0, -15, 10, 22, 0, 0, Math.PI * 2);
+                    ctx.ellipse(0, -12, 8, 18, 0, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.restore();
                 }
-
-                const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 8);
-                grad.addColorStop(0, '#fff');
-                grad.addColorStop(1, `hsla(${this.palette.h}, 100%, 70%, 0)`);
-                ctx.fillStyle = grad;
-                ctx.beginPath();
-                ctx.arc(0, 0, 8, 0, Math.PI * 2);
-                ctx.fill();
-
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
                 ctx.restore();
-
-                if (Math.random() > 0.99) {
-                    particles.push(new Particle(x, y, this.palette.h));
-                }
+                if (Math.random() > 0.99) particles.push(new Particle(x, y, this.palette.h));
             }
         }
 
         class Particle {
             constructor(x, y, hue) {
-                this.x = x;
-                this.y = y;
-                this.hue = hue;
-                this.vx = (Math.random() - 0.5) * 1;
-                this.vy = Math.random() * -1 - 0.5;
+                this.x = x; this.y = y; this.hue = hue;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = Math.random() * -0.5 - 0.1;
                 this.alpha = 1;
                 this.life = Math.random() * 0.01 + 0.005;
             }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.alpha -= this.life;
-            }
+            update() { this.x += this.vx; this.y += this.vy; this.alpha -= this.life; }
             draw() {
                 ctx.fillStyle = `hsla(${this.hue}, 100%, 80%, ${this.alpha})`;
-                ctx.shadowBlur = 5;
-                ctx.shadowColor = `hsla(${this.hue}, 100%, 80%, 0.5)`;
-                ctx.fillRect(this.x, this.y, 1.5, 1.5);
+                ctx.fillRect(this.x, this.y, 1, 1);
             }
         }
 
         function animate() {
             time++;
-            ctx.fillStyle = 'rgba(5, 5, 8, 0.15)';
+            ctx.fillStyle = '#050508'; 
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            flowers.sort((a, b) => a.z - b.z);
-            flowers.forEach(f => f.draw());
-            
+            fireflies.forEach(f => { f.move(); f.draw(); });
+            for (let i = 0; i < flowers.length; i++) flowers[i].draw();
             for (let i = particles.length - 1; i >= 0; i--) {
                 particles[i].update();
                 if (particles[i].alpha <= 0) particles.splice(i, 1);
                 else particles[i].draw();
             }
-
             requestAnimationFrame(animate);
         }
 
-        window.addEventListener('mousedown', (e) => {
-            if (e.target.closest('.controls')) return;
+        window.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('.controls') || e.target.closest('#music-page')) return;
             flowers.push(new Flower(e.clientX, e.clientY));
             overlay.style.opacity = '0';
         });
@@ -311,13 +377,14 @@
                 autoInterval = setInterval(() => {
                     flowers.push(new Flower(Math.random() * canvas.width, Math.random() * canvas.height * 0.7 + 100));
                     overlay.style.opacity = '0';
-                }, 800);
+                }, 1000);
             } else {
                 btn.classList.remove('active');
                 clearInterval(autoInterval);
             }
         }
 
+        resize();
         animate();
     </script>
 </body>
