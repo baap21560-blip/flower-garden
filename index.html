@@ -221,10 +221,14 @@
         }
 
         function startPlaylist() {
+            // Set the source and play
             audio.src = tracks[currentTrackIndex];
-            audio.play().catch(e => console.log("Waiting for user gesture"));
-            isMusicStarted = true;
-            updateUI();
+            audio.play().then(() => {
+                isMusicStarted = true;
+                updateUI();
+            }).catch(e => {
+                console.log("Autoplay blocked. Waiting for user interaction.");
+            });
         }
 
         function updateUI() {
@@ -241,7 +245,7 @@
             });
         }
 
-        // Auto-play next track
+        // Playback Loop: Auto-play next track or restart playlist at end
         audio.onended = () => {
             currentTrackIndex = (currentTrackIndex + 1) % tracks.length;
             startPlaylist();
@@ -380,8 +384,8 @@
         window.addEventListener('pointerdown', (e) => {
             if (e.target.closest('.controls') || e.target.closest('#music-page')) return;
             
-            
-            if (!isMusicStarted) {
+            // Starts music loop when planting the very first flower or if audio was paused
+            if (!isMusicStarted || audio.paused) {
                 startPlaylist();
             }
 
