@@ -245,7 +245,7 @@
             });
         }
 
-        // Playback Loop: Auto-play next track or restart playlist at end
+        
         audio.onended = () => {
             currentTrackIndex = (currentTrackIndex + 1) % tracks.length;
             startPlaylist();
@@ -413,7 +413,6 @@
                 clearInterval(autoInterval);
             }
         }
-
         resize();
         animate();
     </script>
