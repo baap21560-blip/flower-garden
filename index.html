@@ -384,7 +384,7 @@
         window.addEventListener('pointerdown', (e) => {
             if (e.target.closest('.controls') || e.target.closest('#music-page')) return;
             
-            // Starts music loop when planting the very first flower or if audio was paused
+    
             if (!isMusicStarted || audio.paused) {
                 startPlaylist();
             }
